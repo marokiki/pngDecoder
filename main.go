@@ -291,7 +291,7 @@ func main() {
 				for x := 0; x < width; x++ {
 					offset := bytesPerPixel*width*y + bytesPerPixel*x
 					fmt.Println(offset)
-					pixel := data[offset : offset+bytesPerPixel]
+					pixel := ndata[offset : offset+bytesPerPixel]
 					i := y*nrgba.Stride + x*1
 					nrgba.Pix[i] = pixel[0]   
 				}
