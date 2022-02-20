@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/binary"
-	"io"
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 )
 
 func readBytes(r io.Reader, n int) []byte {
@@ -26,7 +27,8 @@ func readBytesAsInt(r io.Reader, n int) int {
 }
 
 func main(){
-	buf, err := ioutil.ReadFile("test.png")
+	fileNama := os.Args[1]
+	buf, err := ioutil.ReadFile(fileNama)
 	if err != nil {
 		return 
 	}
