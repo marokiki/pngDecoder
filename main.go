@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -9,25 +10,14 @@ import (
 	"os"
 )
 
-func Bytes2uint(bytes []byte) uint64 {
-    padding := make([]byte, 8-len(bytes))
-    i := binary.BigEndian.Uint64(append(padding, bytes...))
-    return i
+func byte1toint (b []byte) uint32 {
+	_ = b[0]
+	return uint32(b[0])
 }
 
-func byte2int(bytes []byte) int{
-	    if 0x7f < bytes[0] {
-        mask := uint64(1<<uint(len(bytes)*8-1) - 1)
-
-        bytes[0] &= 0x7f
-        i := Bytes2uint(bytes)
-        i = (^i + 1) & mask
-        return int(-i)
-
-    } else {
-        i := Bytes2uint(bytes)
-        return int(i)
-    }
+func byte3toint (b []byte) uint32 {
+	_ = b[2]
+	return uint32(b[2]) | uint32(b[1])<<8 | uint32(b[0])<<16
 }
 
 func readBytes(r io.Reader, n int) []byte {
@@ -40,15 +30,35 @@ func readBytes(r io.Reader, n int) []byte {
 }
 
 func readBytesAsInt(r io.Reader, n int) int {
-	if n >= 4{
-	return int(binary.BigEndian.Uint32(readBytes(r, n)))
+	if n == 4{
+		return int(binary.BigEndian.Uint32(readBytes(r, n)))
+	 } else if n == 1{
+		return int(byte1toint(readBytes(r,n)))
 	 } else if n == 2{
-	 	return int(readBytes(r,n)[0])
-	 	//return byte2int(readBytes(r, n))
+		return int(binary.BigEndian.Uint16(readBytes(r,n)))
+	 } else if n == 3{
+		return int(byte3toint(readBytes(r,n)))
 	 } else{
-		 return int(readBytes(r,n)[0])
+		return 0
 	 }
 }
+
+func uncompress(data []byte) ([]byte, error) {
+	dataBuffer := bytes.NewReader(data)
+	r, err := zlib.NewReader(dataBuffer)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	var buffer bytes.Buffer
+	_, err = buffer.ReadFrom(r)
+	if err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
 
 func main(){
 	fileNama := os.Args[1]
@@ -156,7 +166,7 @@ func main(){
 
 		case "tIME":
 			timeNR := bytes.NewReader(data)
-			year := readBytes(timeNR, 2)
+			year := readBytesAsInt(timeNR, 2)
 			month := readBytesAsInt(timeNR, 1)
 			day := readBytesAsInt(timeNR, 1)
 			hour := readBytesAsInt(timeNR, 1)
@@ -168,7 +178,11 @@ func main(){
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
 			imgData := readBytes(idatNR, Length)
+			uncompressedData, _ := uncompress(data)
 			fmt.Println("imageData:",imgData)
+			fmt.Println("dataLength:",Length)
+			fmt.Println("uncompressedData:",uncompressedData)
+			fmt.Println("Lenght:",len(uncompressedData))
 			
 		case "IEND":
 			loop = false
