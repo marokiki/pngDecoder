@@ -38,6 +38,7 @@ func main(){
 	}
 
 	loop := true
+	var colorType int
 
 	for loop{
 		Length := readBytesAsInt(r,4)
@@ -59,12 +60,65 @@ func main(){
 			interlace := readBytesAsInt(ihdrNR, 1)
 			fmt.Println("Width:",width,"Height:",height,"depth:",depth,"ColorType:",colorType,"Compression:",compression,"FilterType:",filter,"Interlace:",interlace)
 		
+		case "PLTE":
+			plteNR := bytes.NewReader(data)
+			paletteData := readBytes(plteNR, Length)
+			fmt.Println("paletteData:", paletteData)
+
+		case "tRNS":
+			trnsNR := bytes.NewReader(data)
+			if colorType == 3 {
+				var PaletteAlpha []byte
+				for i := 0; i < Length; i++ {
+					PaletteAlpha[i] = readBytes(trnsNR, 1)[0]
+					fmt.Println("PaletteNo.",i," Alpha:",PaletteAlpha[i])
+				}
+			} else if colorType == 0 {
+				var GlayAlpha []byte
+				for i := 0; i < Length/2; i++ {
+					GlayAlpha[i] = readBytes(trnsNR, 2)[0]
+					fmt.Println("GlayLevel.",i," Alpha:",GlayAlpha[i])
+				}
+			} else if colorType == 2 {
+				var TransAlphaR []byte
+				var TransAlphaG []byte
+				var TransAlphaB []byte
+				for i := 0; i < Length/6; i++ {
+					TransAlphaR[i] = readBytes(trnsNR, 2)[0]
+					TransAlphaG[i] = readBytes(trnsNR, 2)[0]
+					TransAlphaB[i] = readBytes(trnsNR, 2)[0]
+					fmt.Println("No.",i," Alpha R:",TransAlphaR[i],", G:",TransAlphaG[i],", B:",TransAlphaB[i])
+				}
+			}
+
+		case "gAMA":
+			gamaNR := bytes.NewReader(data)
+			gamma := readBytesAsInt(gamaNR, Length)
+			fmt.Println("gammaValue:",gamma)
+
+		case "cHRM":
+			chrmNR := bytes.NewReader(data)
+			whitePointX := readBytesAsInt(chrmNR, 4)
+			whitePointY := readBytesAsInt(chrmNR, 4)
+			redX := readBytesAsInt(chrmNR, 4)
+			redY := readBytesAsInt(chrmNR, 4)
+			greenX := readBytesAsInt(chrmNR, 4)
+			greenY := readBytesAsInt(chrmNR, 4)
+			blueX := readBytesAsInt(chrmNR, 4)	
+			blueY := readBytesAsInt(chrmNR, 4)
+			fmt.Println("White Point X:", whitePointX, "White Point Y:", whitePointY, "Red X:", redX, "Red Y:", redY, "Green X:", greenX, "Green Y:", greenY, "Blue X:", blueX, "Blue Y:", blueY)
+
+		case "tEXt":
+			textNR := bytes.NewReader(data)
+			keyWords := readBytes(textNR, Length)
+			fmt.Println("KeyWords:",string(keyWords))
+
 		// TO DO: Data部の展開
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
 			imgData := readBytes(idatNR, Length)
 			fmt.Println("imageData:",imgData)
-		
+			
 		case "IEND":
 			loop = false
 		}
