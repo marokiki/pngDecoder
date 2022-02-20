@@ -9,6 +9,27 @@ import (
 	"os"
 )
 
+func Bytes2uint(bytes []byte) uint64 {
+    padding := make([]byte, 8-len(bytes))
+    i := binary.BigEndian.Uint64(append(padding, bytes...))
+    return i
+}
+
+func byte2int(bytes []byte) int{
+	    if 0x7f < bytes[0] {
+        mask := uint64(1<<uint(len(bytes)*8-1) - 1)
+
+        bytes[0] &= 0x7f
+        i := Bytes2uint(bytes)
+        i = (^i + 1) & mask
+        return int(-i)
+
+    } else {
+        i := Bytes2uint(bytes)
+        return int(i)
+    }
+}
+
 func readBytes(r io.Reader, n int) []byte {
 	buf := make([]byte, n)
 	_, err := r.Read(buf)
@@ -19,11 +40,14 @@ func readBytes(r io.Reader, n int) []byte {
 }
 
 func readBytesAsInt(r io.Reader, n int) int {
-	if n == 4{
+	if n >= 4{
 	return int(binary.BigEndian.Uint32(readBytes(r, n)))
-	} else {
-		return int(readBytes(r,n)[0])
-	}
+	 } else if n == 2{
+	 	return int(readBytes(r,n)[0])
+	 	//return byte2int(readBytes(r, n))
+	 } else{
+		 return int(readBytes(r,n)[0])
+	 }
 }
 
 func main(){
@@ -130,6 +154,16 @@ func main(){
 				fmt.Println("BackGround Color R:",r," G:",g, " B:",b)
 			}
 
+		case "tIME":
+			timeNR := bytes.NewReader(data)
+			year := readBytes(timeNR, 2)
+			month := readBytesAsInt(timeNR, 1)
+			day := readBytesAsInt(timeNR, 1)
+			hour := readBytesAsInt(timeNR, 1)
+			minute := readBytesAsInt(timeNR, 1)
+			second := readBytesAsInt(timeNR, 1)
+			fmt.Println("Last-Modification Time Year:",year," Month:",month," Day:",day," Hour:",hour," Minute:",minute," Second:", second)
+
 		// TO DO: Data部の展開
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
@@ -138,6 +172,7 @@ func main(){
 			
 		case "IEND":
 			loop = false
+			fmt.Println("END")
 		}
 	}
 	fmt.Println("Complete")
