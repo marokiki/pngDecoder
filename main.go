@@ -73,7 +73,7 @@ func main(){
 		_ = readBytes(r, 4)
 		fmt.Println("Chunk:",Type)
 
-		// TO DO: 必須チャンク以外の追加
+		// TO DO: 補助チャンクの追加
 		switch Type {
 		case "IHDR":
 			ihdrNR := bytes.NewReader(data)
