@@ -115,6 +115,21 @@ func main(){
 			keyWords := readBytes(textNR, Length)
 			fmt.Println("KeyWords:",string(keyWords))
 
+		case "bKGD":
+			bkgdNR := bytes.NewReader(data)
+			if colorType == 3 {
+				paletteNo := readBytesAsInt(bkgdNR, 1)
+				fmt.Println("BackGround Palette No:",paletteNo)
+			} else if colorType == 0 || colorType == 4 {
+				glayLevel := readBytesAsInt(bkgdNR, 2)
+				fmt.Println("BackGround Glay Level:",glayLevel)
+			} else if colorType == 2 || colorType == 6 {
+				r := readBytesAsInt(bkgdNR, 2)
+				g := readBytesAsInt(bkgdNR, 2)
+				b := readBytesAsInt(bkgdNR, 2)
+				fmt.Println("BackGround Color R:",r," G:",g, " B:",b)
+			}
+
 		// TO DO: Data部の展開
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
