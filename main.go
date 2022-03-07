@@ -253,10 +253,13 @@ func main() {
 		case "zTXt":
 			textNR := bytes.NewReader(data)
 			KeyWords := readBytes(textNR, Length)
-			fmt.Println("KeyWords:",string(KeyWords))
+			fmt.Println("Compressed KeyWords:",string(KeyWords))
 		
-		
-
+		case "iTXt":
+			textNR := bytes.NewReader(data)
+			KeyWords := readBytes(textNR, Length)
+			fmt.Println("International KeyWords:",string(KeyWords))
+			
 		case "bKGD":
 			bkgdNR := bytes.NewReader(data)
 			if colorType == 3 {
