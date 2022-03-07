@@ -273,6 +273,8 @@ func main() {
 				g := readBytesAsInt(bkgdNR, 2)
 				b := readBytesAsInt(bkgdNR, 2)
 				fmt.Println("BackGround Color R:", r, " G:", g, " B:", b)
+			} else{
+				fmt.Println("Invalid ColorType")
 			}
 
 		case "pHYs":
@@ -286,6 +288,35 @@ func main() {
 			}
 			fmt.Println("Pixel per unit X:", pixelX,"Y:",pixelY,"unit:",u)
 
+		case "sBIT":
+			bitNR := bytes.NewReader(data)
+			if colorType == 0{
+				glaybit := readBytesAsInt(bitNR, 1)
+				fmt.Println("Glay Bit Number:", glaybit)
+			}else if colorType == 2{
+				r := readBytesAsInt(bitNR, 1)
+				g := readBytesAsInt(bitNR, 1)
+				b := readBytesAsInt(bitNR, 1)
+				fmt.Println("Bit Number Red:",r,"Green:",g,"Blue:",b)
+			}else if colorType == 3{
+				r := readBytesAsInt(bitNR, 1)
+				g := readBytesAsInt(bitNR, 1)
+				b := readBytesAsInt(bitNR, 1)
+				fmt.Println("Bit Number on Palette Red:",r,"Green:",g,"Blue:",b)	
+			}else if colorType == 4{
+				glay := readBytesAsInt(bitNR,1)
+				alpha := readBytesAsInt(bitNR,1)
+				fmt.Println("Glay Bit Number:",glay,"Alpha Bit Number:",alpha)
+			}else if colorType == 6{
+				r := readBytesAsInt(bitNR, 1)
+				g := readBytesAsInt(bitNR, 1)
+				b := readBytesAsInt(bitNR, 1)
+				alpha := readBytesAsInt(bitNR,1)
+				fmt.Println("Bit Number Red:",r,"Green:",g,"Blue:",b,"Alpha:",alpha)
+			}else{
+				fmt.Println("Invalid ColorType")
+			}
+
 		case "tIME":
 			timeNR := bytes.NewReader(data)
 			year := readBytesAsInt(timeNR, 2)
@@ -296,7 +327,6 @@ func main() {
 			second := readBytesAsInt(timeNR, 1)
 			fmt.Println("Last-Modification Time Year:", year, " Month:", month, " Day:", day, " Hour:", hour, " Minute:", minute, " Second:", second)
 
-		// TO DO: Data部の展開
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
 			imgData := readBytes(idatNR, Length)
