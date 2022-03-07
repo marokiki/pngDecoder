@@ -53,7 +53,6 @@ func readBytesAsInt(r io.Reader, n int) int {
 // zlib圧縮の展開
 func uncompress(data []byte) ([]byte, error) {
 	dataBuffer := bytes.NewReader(data)
-	fmt.Println(len(data))
 	r, err := zlib.NewReader(dataBuffer)
 	if err != nil {
 		return nil, err
