@@ -275,6 +275,17 @@ func main() {
 				fmt.Println("BackGround Color R:", r, " G:", g, " B:", b)
 			}
 
+		case "pHYs":
+			pixelNR := bytes.NewReader(data)
+			pixelX := readBytesAsInt(pixelNR, 4)
+			pixelY := readBytesAsInt(pixelNR, 4)
+			unit := readBytesAsInt(pixelNR, 1)
+			u := "Undefined"
+			if unit == 1 {
+				u = "Meter"
+			}
+			fmt.Println("Pixel per unit X:", pixelX,"Y:",pixelY,"unit:",u)
+
 		case "tIME":
 			timeNR := bytes.NewReader(data)
 			year := readBytesAsInt(timeNR, 2)
