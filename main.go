@@ -234,6 +234,11 @@ func main() {
 			blueY := readBytesAsInt(chrmNR, 4)
 			fmt.Println("White Point X:", whitePointX, "White Point Y:", whitePointY, "Red X:", redX, "Red Y:", redY, "Green X:", greenX, "Green Y:", greenY, "Blue X:", blueX, "Blue Y:", blueY)
 
+		case "sRGB":
+			rgbNR := bytes.NewReader(data)
+			rendering := readBytes(rgbNR, Length)
+			fmt.Println("Rendering Effects:",string(rendering))
+
 		case "tEXt":
 			textNR := bytes.NewReader(data)
 			keyWords := readBytes(textNR, Length)
