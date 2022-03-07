@@ -332,6 +332,21 @@ func main() {
 			paletteNR := bytes.NewReader(data)
 			paletteName := readBytes(paletteNR, Length)
 			fmt.Println("Recommended Palatte:",paletteName)
+		
+		case "hIST":
+			histNR := bytes.NewReader(data)
+			paletteNum := Length / 3
+			hist := make([]int,0)
+			for i:=0; i<paletteNum; i++{
+				hist = append(hist,readBytesAsInt(histNR, 2))
+			}
+			if hist[0] == 0{
+				fmt.Println("No Used")
+			} else{
+				for i:=0; i<paletteNum; i++{
+					fmt.Println("Palette Num ",i," Use Frequency:",hist[i])
+				}
+			}
 
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
