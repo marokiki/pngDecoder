@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-!/.png/output.png
+*.png
 
 # Test binary, built with `go test -c`
 *.test
