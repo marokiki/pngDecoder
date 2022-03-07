@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
+	"image/color/palette"
 	"image/png"
 	"io"
 	"io/ioutil"
@@ -326,6 +327,11 @@ func main() {
 			minute := readBytesAsInt(timeNR, 1)
 			second := readBytesAsInt(timeNR, 1)
 			fmt.Println("Last-Modification Time Year:", year, " Month:", month, " Day:", day, " Hour:", hour, " Minute:", minute, " Second:", second)
+		
+		case "sPLT":
+			paletteNR := bytes.NewReader(data)
+			paletteName := readBytes(paletteNR, Length)
+			fmt.Println("Recommended Palatte:",paletteName)
 
 		case "IDAT":
 			idatNR := bytes.NewReader(data)
