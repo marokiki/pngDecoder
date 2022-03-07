@@ -6,25 +6,26 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"image/color/palette"
 	"image/png"
 	"io"
 	"io/ioutil"
 	"math"
 	"os"
-	"strconv"
 )
 
+// 1バイト文字をintに変換
 func byte1toint(b []byte) uint32 {
 	_ = b[0]
 	return uint32(b[0])
 }
 
+// 3バイト文字をintに変換
 func byte3toint(b []byte) uint32 {
 	_ = b[2]
 	return uint32(b[2]) | uint32(b[1])<<8 | uint32(b[0])<<16
 }
 
+// バイト列中の先頭nバイトを読む
 func readBytes(r io.Reader, n int) []byte {
 	buf := make([]byte, n)
 	_, err := r.Read(buf)
@@ -34,6 +35,7 @@ func readBytes(r io.Reader, n int) []byte {
 	return buf
 }
 
+// バイト列中の先頭nバイトをintとして読む
 func readBytesAsInt(r io.Reader, n int) int {
 	if n == 4 {
 		return int(binary.BigEndian.Uint32(readBytes(r, n)))
@@ -48,6 +50,7 @@ func readBytesAsInt(r io.Reader, n int) int {
 	}
 }
 
+// zlib圧縮の展開
 func uncompress(data []byte) ([]byte, error) {
 	dataBuffer := bytes.NewReader(data)
 	r, err := zlib.NewReader(dataBuffer)
@@ -64,6 +67,7 @@ func uncompress(data []byte) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// 1ピクセル中のビット数を計算
 func bitsPerPixel(colorType int, depth int) (int, error) {
 	switch colorType {
 	case 0:
@@ -81,10 +85,10 @@ func bitsPerPixel(colorType int, depth int) (int, error) {
 	}
 }
 
+// フィルタリング処理を展開
 func applyFilter(data []byte, width, height, bitsPerPixel, bytesPerPixel int) ([]byte, error) {
 	rowSize := 1 + (bitsPerPixel*width+7)/8
 	imageData := make([]byte, width*height*bytesPerPixel)
-	fmt.Println(bytesPerPixel)
 	rowData := make([]byte, rowSize)
 	prevRowData := make([]byte, rowSize)
 	for h := 0; h < height; h++ {
@@ -149,8 +153,8 @@ func applyFilter(data []byte, width, height, bitsPerPixel, bytesPerPixel int) ([
 }
 
 func main() {
-	fileNama := os.Args[1]
-	buf, err := ioutil.ReadFile(fileNama)
+	fileName := os.Args[1]
+	buf, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return
 	}
@@ -175,7 +179,6 @@ func main() {
 		_ = readBytes(r, 4)
 		fmt.Println("Chunk:", Type)
 
-		// TO DO: 補助チャンクの追加
 		switch Type {
 		case "IHDR":
 			ihdrNR := bytes.NewReader(data)
@@ -239,12 +242,12 @@ func main() {
 		case "sRGB":
 			rgbNR := bytes.NewReader(data)
 			rendering := readBytes(rgbNR, Length)
-			fmt.Println("Rendering Effects:",string(rendering))
+			fmt.Println("Rendering Effects:", string(rendering))
 
 		case "iCCP":
 			iccpNR := bytes.NewReader(data)
 			profile := readBytes(iccpNR, Length)
-			fmt.Println("profile:",string(profile))
+			fmt.Println("profile:", string(profile))
 
 		case "tEXt":
 			textNR := bytes.NewReader(data)
@@ -254,13 +257,13 @@ func main() {
 		case "zTXt":
 			textNR := bytes.NewReader(data)
 			KeyWords := readBytes(textNR, Length)
-			fmt.Println("Compressed KeyWords:",string(KeyWords))
-		
+			fmt.Println("Compressed KeyWords:", string(KeyWords))
+
 		case "iTXt":
 			textNR := bytes.NewReader(data)
 			KeyWords := readBytes(textNR, Length)
-			fmt.Println("International KeyWords:",string(KeyWords))
-			
+			fmt.Println("International KeyWords:", string(KeyWords))
+
 		case "bKGD":
 			bkgdNR := bytes.NewReader(data)
 			if colorType == 3 {
@@ -274,7 +277,7 @@ func main() {
 				g := readBytesAsInt(bkgdNR, 2)
 				b := readBytesAsInt(bkgdNR, 2)
 				fmt.Println("BackGround Color R:", r, " G:", g, " B:", b)
-			} else{
+			} else {
 				fmt.Println("Invalid ColorType")
 			}
 
@@ -287,34 +290,34 @@ func main() {
 			if unit == 1 {
 				u = "Meter"
 			}
-			fmt.Println("Pixel per unit X:", pixelX,"Y:",pixelY,"unit:",u)
+			fmt.Println("Pixel per unit X:", pixelX, "Y:", pixelY, "unit:", u)
 
 		case "sBIT":
 			bitNR := bytes.NewReader(data)
-			if colorType == 0{
+			if colorType == 0 {
 				glaybit := readBytesAsInt(bitNR, 1)
 				fmt.Println("Glay Bit Number:", glaybit)
-			}else if colorType == 2{
+			} else if colorType == 2 {
 				r := readBytesAsInt(bitNR, 1)
 				g := readBytesAsInt(bitNR, 1)
 				b := readBytesAsInt(bitNR, 1)
-				fmt.Println("Bit Number Red:",r,"Green:",g,"Blue:",b)
-			}else if colorType == 3{
+				fmt.Println("Bit Number Red:", r, "Green:", g, "Blue:", b)
+			} else if colorType == 3 {
 				r := readBytesAsInt(bitNR, 1)
 				g := readBytesAsInt(bitNR, 1)
 				b := readBytesAsInt(bitNR, 1)
-				fmt.Println("Bit Number on Palette Red:",r,"Green:",g,"Blue:",b)	
-			}else if colorType == 4{
-				glay := readBytesAsInt(bitNR,1)
-				alpha := readBytesAsInt(bitNR,1)
-				fmt.Println("Glay Bit Number:",glay,"Alpha Bit Number:",alpha)
-			}else if colorType == 6{
+				fmt.Println("Bit Number on Palette Red:", r, "Green:", g, "Blue:", b)
+			} else if colorType == 4 {
+				glay := readBytesAsInt(bitNR, 1)
+				alpha := readBytesAsInt(bitNR, 1)
+				fmt.Println("Glay Bit Number:", glay, "Alpha Bit Number:", alpha)
+			} else if colorType == 6 {
 				r := readBytesAsInt(bitNR, 1)
 				g := readBytesAsInt(bitNR, 1)
 				b := readBytesAsInt(bitNR, 1)
-				alpha := readBytesAsInt(bitNR,1)
-				fmt.Println("Bit Number Red:",r,"Green:",g,"Blue:",b,"Alpha:",alpha)
-			}else{
+				alpha := readBytesAsInt(bitNR, 1)
+				fmt.Println("Bit Number Red:", r, "Green:", g, "Blue:", b, "Alpha:", alpha)
+			} else {
 				fmt.Println("Invalid ColorType")
 			}
 
@@ -327,34 +330,34 @@ func main() {
 			minute := readBytesAsInt(timeNR, 1)
 			second := readBytesAsInt(timeNR, 1)
 			fmt.Println("Last-Modification Time Year:", year, " Month:", month, " Day:", day, " Hour:", hour, " Minute:", minute, " Second:", second)
-		
+
 		case "sPLT":
 			paletteNR := bytes.NewReader(data)
 			paletteName := readBytes(paletteNR, Length)
-			fmt.Println("Recommended Palatte:",paletteName)
-		
+			fmt.Println("Recommended Palatte:", paletteName)
+
 		case "hIST":
 			histNR := bytes.NewReader(data)
 			paletteNum := Length / 3
-			hist := make([]int,0)
-			for i:=0; i<paletteNum; i++{
-				hist = append(hist,readBytesAsInt(histNR, 2))
+			hist := make([]int, 0)
+			for i := 0; i < paletteNum; i++ {
+				hist = append(hist, readBytesAsInt(histNR, 2))
 			}
-			if hist[0] == 0{
+			if hist[0] == 0 {
 				fmt.Println("No Used")
-			} else{
-				for i:=0; i<paletteNum; i++{
-					fmt.Println("Palette Num ",i," Use Frequency:",hist[i])
+			} else {
+				for i := 0; i < paletteNum; i++ {
+					fmt.Println("Palette Num ", i, " Use Frequency:", hist[i])
 				}
 			}
 
 		case "IDAT":
-			idatNR := bytes.NewReader(data)
-			imgData := readBytes(idatNR, Length)
+			//idatNR := bytes.NewReader(data)
+			//imgData := readBytes(idatNR, Length)
 			uncompressedData, _ := uncompress(data)
-			fmt.Println("imageData:", imgData)
+			//fmt.Println("imageData:", imgData)
 			fmt.Println("dataLength:", Length)
-			fmt.Println("uncompressedData:", uncompressedData)
+			//fmt.Println("uncompressedData:", uncompressedData)
 			fmt.Println("Length:", len(uncompressedData))
 
 			// apply filter type
@@ -369,17 +372,65 @@ func main() {
 			}
 			fmt.Println("appled filter type data length:", len(ndata))
 
-			nrgba := image.NewGray(image.Rect(0, 0, width, height))
-			for y := 0; y < height; y++ {
-				for x := 0; x < width; x++ {
-					offset := bytesPerPixel*width*y + bytesPerPixel*x
-					fmt.Println(offset)
-					pixel := ndata[offset : offset+bytesPerPixel]
-					i := y*nrgba.Stride + x*1
-					nrgba.Pix[i] = pixel[0]   
+			switch colorType {
+			case 0: // GlayScale Image
+				nglay := image.NewGray(image.Rect(0, 0, width, height))
+				for y := 0; y < height; y++ {
+					for x := 0; x < width; x++ {
+						offset := bytesPerPixel*width*y + bytesPerPixel*x
+						pixel := ndata[offset : offset+bytesPerPixel]
+						i := y*nglay.Stride + x*1
+						nglay.Pix[i] = pixel[0] // Glay
+					}
 				}
+				img = nglay
+
+			case 2: // True Color Image
+				nrgb := image.NewRGBA(image.Rect(0, 0, width, height))
+				for y := 0; y < height; y++ {
+					for x := 0; x < width; x++ {
+						offset := bytesPerPixel*width*y + bytesPerPixel*x
+						pixel := ndata[offset : offset+bytesPerPixel]
+						i := y*nrgb.Stride + x*4
+						nrgb.Pix[i] = pixel[0]   // R
+						nrgb.Pix[i+1] = pixel[1] // G
+						nrgb.Pix[i+2] = pixel[2] // B
+						nrgb.Pix[i+3] = 255 	 // Alpha
+					}
+				}
+				img = nrgb
+
+			// TO DO: case 3(インデックスカラー画像)
+
+			// TO DO: case 4 image.NewGray 修正
+			case 4: // GlayScale + Alpha Image
+				nglayalpha := image.NewGray(image.Rect(0, 0, width, height))
+				for y := 0; y < height; y++ {
+					for x := 0; x < width; x++ {
+						offset := bytesPerPixel*width*y + bytesPerPixel*x
+						pixel := ndata[offset : offset+bytesPerPixel]
+						i := y*nglayalpha.Stride + x*2
+						nglayalpha.Pix[i] = pixel[0]   // Glay
+						nglayalpha.Pix[i+1] = 255 // Alpha
+					}
+				}
+				img = nglayalpha
+
+			case 6:	// True Color + Alpha Image
+				nrgba := image.NewGray(image.Rect(0,0,width,height))
+				for y:=0; y<height; y++{
+					for x:=0; x<width; x++{
+						offset:= bytesPerPixel*width*y + bytesPerPixel*x
+						pixel := ndata[offset : offset+bytesPerPixel]
+						i := y*nrgba.Stride + x*4
+						nrgba.Pix[i] = pixel[0]		// R
+						nrgba.Pix[i+1] = pixel[1]	// G
+						nrgba.Pix[i+2] = pixel[2]	// B
+						nrgba.Pix[i+3] = pixel[3]	// A
+					}
+				}
+				img = nrgba
 			}
-			img = nrgba
 
 		case "IEND":
 			loop = false
