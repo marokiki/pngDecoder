@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"strconv"
 )
 
 func byte1toint(b []byte) uint32 {
@@ -239,10 +240,22 @@ func main() {
 			rendering := readBytes(rgbNR, Length)
 			fmt.Println("Rendering Effects:",string(rendering))
 
+		case "iCCP":
+			iccpNR := bytes.NewReader(data)
+			profile := readBytes(iccpNR, Length)
+			fmt.Println("profile:",string(profile))
+
 		case "tEXt":
 			textNR := bytes.NewReader(data)
 			keyWords := readBytes(textNR, Length)
 			fmt.Println("KeyWords:", string(keyWords))
+
+		case "zTXt":
+			textNR := bytes.NewReader(data)
+			KeyWords := readBytes(textNR, Length)
+			fmt.Println("KeyWords:",string(KeyWords))
+		
+		
 
 		case "bKGD":
 			bkgdNR := bytes.NewReader(data)
