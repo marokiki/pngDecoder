@@ -53,6 +53,7 @@ func readBytesAsInt(r io.Reader, n int) int {
 // zlib圧縮の展開
 func uncompress(data []byte) ([]byte, error) {
 	dataBuffer := bytes.NewReader(data)
+	fmt.Println(len(data))
 	r, err := zlib.NewReader(dataBuffer)
 	if err != nil {
 		return nil, err
@@ -64,6 +65,7 @@ func uncompress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return buffer.Bytes(), nil
 }
 
@@ -91,8 +93,8 @@ func applyFilter(data []byte, width, height, bitsPerPixel, bytesPerPixel int) ([
 	imageData := make([]byte, width*height*bytesPerPixel)
 	rowData := make([]byte, rowSize)
 	prevRowData := make([]byte, rowSize)
-	for h := 0; h < height; h++ {
-		offset := h * rowSize
+	for y := 0; y < height; y++ {
+		offset := y * rowSize
 		rowData = data[offset : offset+rowSize]
 		filterType := int(rowData[0])
 
@@ -144,10 +146,13 @@ func applyFilter(data []byte, width, height, bitsPerPixel, bytesPerPixel int) ([
 		default:
 			return nil, fmt.Errorf("bad filter type")
 		}
-		copy(imageData[h*len(currentScanData):], currentScanData)
 
-		prevRowData, rowData = rowData, prevRowData
+		copy(imageData[y*len(currentScanData):], currentScanData)
+
+		prevRowData = rowData
+		rowData = prevRowData
 	}
+	//fmt.Println(rowData)
 
 	return imageData, nil
 }
@@ -171,6 +176,7 @@ func main() {
 	var height int
 	var depth int
 	var img image.Image
+	imgdata := make([]byte, 0)
 
 	for loop {
 		Length := readBytesAsInt(r, 4)
@@ -354,88 +360,91 @@ func main() {
 		case "IDAT":
 			//idatNR := bytes.NewReader(data)
 			//imgData := readBytes(idatNR, Length)
-			uncompressedData, _ := uncompress(data)
-			//fmt.Println("imageData:", imgData)
-			fmt.Println("dataLength:", Length)
-			//fmt.Println("uncompressedData:", uncompressedData)
-			fmt.Println("Length:", len(uncompressedData))
-
-			// apply filter type
-			bitsPerPixel, err := bitsPerPixel(colorType, depth)
-			if err != nil {
-				return
-			}
-			bytesPerPixel := (bitsPerPixel + 7) / 8
-			ndata, err := applyFilter(uncompressedData, width, height, bitsPerPixel, bytesPerPixel)
-			if err != nil {
-				return
-			}
-			fmt.Println("appled filter type data length:", len(ndata))
-
-			switch colorType {
-			case 0: // GlayScale Image
-				nglay := image.NewGray(image.Rect(0, 0, width, height))
-				for y := 0; y < height; y++ {
-					for x := 0; x < width; x++ {
-						offset := bytesPerPixel*width*y + bytesPerPixel*x
-						pixel := ndata[offset : offset+bytesPerPixel]
-						i := y*nglay.Stride + x*1
-						nglay.Pix[i] = pixel[0] // Glay
-					}
-				}
-				img = nglay
-
-			case 2: // True Color Image
-				nrgb := image.NewRGBA(image.Rect(0, 0, width, height))
-				for y := 0; y < height; y++ {
-					for x := 0; x < width; x++ {
-						offset := bytesPerPixel*width*y + bytesPerPixel*x
-						pixel := ndata[offset : offset+bytesPerPixel]
-						i := y*nrgb.Stride + x*4
-						nrgb.Pix[i] = pixel[0]   // R
-						nrgb.Pix[i+1] = pixel[1] // G
-						nrgb.Pix[i+2] = pixel[2] // B
-						nrgb.Pix[i+3] = 255 	 // Alpha
-					}
-				}
-				img = nrgb
-
-			// TO DO: case 3(インデックスカラー画像)
-
-			// TO DO: case 4 image.NewGray 修正
-			case 4: // GlayScale + Alpha Image
-				nglayalpha := image.NewGray(image.Rect(0, 0, width, height))
-				for y := 0; y < height; y++ {
-					for x := 0; x < width; x++ {
-						offset := bytesPerPixel*width*y + bytesPerPixel*x
-						pixel := ndata[offset : offset+bytesPerPixel]
-						i := y*nglayalpha.Stride + x*2
-						nglayalpha.Pix[i] = pixel[0]   // Glay
-						nglayalpha.Pix[i+1] = 255 // Alpha
-					}
-				}
-				img = nglayalpha
-
-			case 6:	// True Color + Alpha Image
-				nrgba := image.NewGray(image.Rect(0,0,width,height))
-				for y:=0; y<height; y++{
-					for x:=0; x<width; x++{
-						offset:= bytesPerPixel*width*y + bytesPerPixel*x
-						pixel := ndata[offset : offset+bytesPerPixel]
-						i := y*nrgba.Stride + x*4
-						nrgba.Pix[i] = pixel[0]		// R
-						nrgba.Pix[i+1] = pixel[1]	// G
-						nrgba.Pix[i+2] = pixel[2]	// B
-						nrgba.Pix[i+3] = pixel[3]	// A
-					}
-				}
-				img = nrgba
-			}
+			imgdata = append(imgdata, data...)
+			fmt.Println("Data Length:", len(data))
 
 		case "IEND":
 			loop = false
 			fmt.Println("END")
 		}
+	}
+	uncompressedData, err := uncompress(imgdata)
+	if err != nil {
+		fmt.Println("Uncompress Error")
+		return
+	}
+	fmt.Println("Uncompressed Data Length:", len(uncompressedData))
+
+	// apply filter type
+	bitsPerPixel, err := bitsPerPixel(colorType, depth)
+	if err != nil {
+		return
+	}
+	bytesPerPixel := (bitsPerPixel + 7) / 8
+	ndata, err := applyFilter(uncompressedData, width, height, bitsPerPixel, bytesPerPixel)
+	if err != nil {
+		return
+	}
+	fmt.Println("appled filter type data length:", len(ndata))
+
+	switch colorType {
+	case 0: // GlayScale Image
+		nglay := image.NewGray(image.Rect(0, 0, width, height))
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				offset := bytesPerPixel*width*y + bytesPerPixel*x
+				pixel := ndata[offset : offset+bytesPerPixel]
+				i := y*nglay.Stride + x*1
+				nglay.Pix[i] = pixel[0] // Glay
+			}
+		}
+		img = nglay
+
+	case 2: // True Color Image
+		nrgb := image.NewRGBA(image.Rect(0, 0, width, height))
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				offset := bytesPerPixel*width*y + bytesPerPixel*x
+				pixel := ndata[offset : offset+bytesPerPixel]
+				i := y*nrgb.Stride + x*4
+				nrgb.Pix[i] = pixel[0]   // R
+				nrgb.Pix[i+1] = pixel[1] // G
+				nrgb.Pix[i+2] = pixel[2] // B
+				nrgb.Pix[i+3] = 255      // Alpha
+			}
+		}
+		img = nrgb
+
+	// TO DO: case 3(インデックスカラー画像)
+
+	// TO DO: case 4 image.NewGray 修正
+	case 4: // GlayScale + Alpha Image
+		nglayalpha := image.NewGray(image.Rect(0, 0, width, height))
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				offset := bytesPerPixel*width*y + bytesPerPixel*x
+				pixel := ndata[offset : offset+bytesPerPixel]
+				i := y*nglayalpha.Stride + x*2
+				nglayalpha.Pix[i] = pixel[0] // Glay
+				nglayalpha.Pix[i+1] = 255    // Alpha
+			}
+		}
+		img = nglayalpha
+
+	case 6: // True Color + Alpha Image
+		nrgba := image.NewRGBA(image.Rect(0, 0, width, height))
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				offset := bytesPerPixel*width*y + bytesPerPixel*x
+				pixel := ndata[offset : offset+bytesPerPixel]
+				i := y*nrgba.Stride + x*4
+				nrgba.Pix[i] = pixel[0]   // R
+				nrgba.Pix[i+1] = pixel[1] // G
+				nrgba.Pix[i+2] = pixel[2] // B
+				nrgba.Pix[i+3] = pixel[3] // A
+			}
+		}
+		img = nrgba
 	}
 
 	outputFile, err := os.Create(("output.png"))
