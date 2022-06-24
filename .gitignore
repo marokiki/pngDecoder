@@ -5,9 +5,6 @@
 *.so
 *.dylib
 *.png
-!test.png
-!output.png
-!Lenna.png
 
 # Test binary, built with `go test -c`
 *.test
